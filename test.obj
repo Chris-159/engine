@@ -1,0 +1,7 @@
+# Egyszerű háromszög
+v 0.0 1.0 0.0
+v -1.0 -1.0 0.0
+v 1.0 -1.0 0.0
+
+# Face (háromszög)
+f 1 2 3
