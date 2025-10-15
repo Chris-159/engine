@@ -1,33 +1,28 @@
 #include<iostream>
+
 #include "loader/ModelLoader.h"
+#include "transform/Transform.h"
+#include "math/camera.h"
 
 using namespace std;
 
 // [ model.obj ] → [ Loader ] → [ Model struktúra ] → [ Engine / Renderer ]
 
 int main() {
-    loader::ModelLoader loader;
-    core::Model model = loader.LoadObj("test.obj");
-    
-    cout << "Vertexes: \n";
-    for (auto & element : model.vertices) {
-        cout << "X: " << element.x << " ";
-        cout << "Y: " << element.y << " ";
-        cout << "Z: " << element.z << " | ";
-    }
-    
-    for (size_t i = 0; i < model.faces.size(); ++i) {
-        std::cout << "Face " << i << ": ";
-        for (int idx : model.faces[i].vertexIndices) {
-            const auto& v = model.vertices[idx]; // VertexS
-            std::cout << "(" << v.x << "," << v.y << "," << v.z << ") ";
-        }
-        std::cout << "\n";
-    }
+    math::Camera cam;
+    cam.position = math::Vec3(0, 0, 0);
+    cam.target   = math::Vec3(0, 0, -1);
+    cam.up       = math::Vec3(0, 1, 0);
 
-        
-    cout << "\n\nVertex count: " << model.VertexCount();
-    cout << "\nFace count: " << model.FaceCount();
+    math::mat4 view = cam.GetViewMatrix();
+
+    std::cout << "View Matrix:\n";
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << view.m[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
 
     return 0;
 }
