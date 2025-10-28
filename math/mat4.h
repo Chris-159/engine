@@ -2,6 +2,7 @@
 #define MAT4_H
 
 #include "vec3.h"
+#include "vec4.h"
 
 namespace math
 {
@@ -10,6 +11,7 @@ namespace math
         float m[4][4] = { 0 };
 
 
+        // Vec3 operators
         Vec3 operator*(const Vec3& v_) const { 
             float x_ = m[0][0]*v_.x + m[0][1]*v_.y + m[0][2]*v_.z + m[0][3]*1;
             float y_ = m[1][0]*v_.x + m[1][1]*v_.y + m[1][2]*v_.z + m[1][3]*1;
@@ -34,6 +36,16 @@ namespace math
                 }
             
             return out_;
+        };
+
+        // Vec4 operators
+        Vec4 operator*(const Vec4& v_) const { 
+            float x_ = m[0][0]*v_.x + m[0][1]*v_.y + m[0][2]*v_.z + m[0][3]*v_.w;
+            float y_ = m[1][0]*v_.x + m[1][1]*v_.y + m[1][2]*v_.z + m[1][3]*v_.w;
+            float z_ = m[2][0]*v_.x + m[2][1]*v_.y + m[2][2]*v_.z + m[2][3]*v_.w;
+            float w_ = m[3][0]*v_.x + m[3][1]*v_.y + m[3][2]*v_.z + m[3][3]*v_.w; 
+
+            return Vec4(x_, y_, z_, w_); 
         };
 
 

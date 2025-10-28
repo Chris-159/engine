@@ -14,6 +14,7 @@ namespace math {
         // Basic operators
         Vec3 operator+(const Vec3& vector_ ) const { return Vec3(x + vector_.x, y + vector_.y, z + vector_.z); };
         Vec3 operator-(const Vec3& vector_ ) const { return Vec3(x - vector_.x, y - vector_.y, z - vector_.z); };
+        Vec3 operator-() const { return Vec3(-x, -y, -z); };
         Vec3 operator*( float scalar_ ) const { return Vec3(x * scalar_, y * scalar_, z * scalar_); };
         Vec3 operator/( float scalar_ ) const { return Vec3(x / scalar_, y / scalar_, z / scalar_); };
 

@@ -18,7 +18,7 @@ all: $(BIN)
 # Link
 $(BIN): $(OBJ_FILES)
 	@echo "🔧 Linking $@..."
-	$(CXX) $(OBJ_FILES) -o $(BIN)
+	$(CXX) $(OBJ_FILES) -o $(BIN) -lgdi32 -luser32
 	@echo "✅ Build complete."
 
 # Compile main.cpp (root)

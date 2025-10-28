@@ -6,7 +6,7 @@
 
 #include "math/mat4.h"
 #include "math/vec3.h"
-#include "math/vec4.h"
+#include "math/Vec4.h"
 #include "math/Camera.h"
 #include "transform/Transform.h"
 
@@ -74,82 +74,44 @@ void DrawTriangle(uint32_t* framebuffer, int width, int height,
 }
 
 // -------------------------------------------------
-// math::Vec3 ProjectPoint(const math::Vec3& worldPos_, const math::mat4& view_, const math::mat4& projection_) {
-//     math::Vec4 p(worldPos_.x, worldPos_.y, worldPos_.z, 1.0f);
-//     math::Vec4 viewPos = view_ * p;
-//     math::Vec4 clipPos = projection_ * viewPos;
+math::Vec3 ProjectPoint(const math::Vec3& worldPos_, const math::mat4& view_, const math::mat4& projection_) {
+    math::Vec4 p(worldPos_.x, worldPos_.y, worldPos_.z, 1.0f);
+    math::Vec4 viewPos = view_ * p;
+    math::Vec4 clipPos = projection_ * viewPos;
 
-//     if (fabs(clipPos.w) > 0.00001f) {
-//         clipPos.x /= clipPos.w;
-//         clipPos.y /= clipPos.w;
-//         clipPos.z /= clipPos.w;
-//     }
+    if (fabs(clipPos.w) > 0.00001f) {
+        clipPos.x /= clipPos.w;
+        clipPos.y /= clipPos.w;
+        clipPos.z /= clipPos.w;
+    }
 
-//     return math::Vec3(clipPos.x, clipPos.y, clipPos.z);
-// }
+    return math::Vec3(clipPos.x, clipPos.y, clipPos.z);
+}
 
 // -------------------------------------------------
 void Render() {
-    Clear(0x202020);
-    
-    // Kamera beállítása
-    // Camera cam;
-    // cam.position = Vec3(0, 1.5f, 5.0f); // kicsit magasabbról néz
-    // cam.target = Vec3(0, 0.5f, 0);
-    // cam.up = Vec3(0, 1, 0);
-    
-    static float camAngle = 0.0f;
-    camAngle += 0.01f;
-    
-    float radius = 5.0f;
-    float height = 1.5f + sinf(camAngle * 0.5f) * 0.5f;
-    
-    std::vector<Vec3> verts = {
-        {-0.5f, 0.0f, -0.5f},  // 0 - bal hátsó
-        { 0.5f, 0.0f, -0.5f},  // 1 - jobb hátsó
-        { 0.5f, 0.0f,  0.5f},  // 2 - jobb elülső
-        {-0.5f, 0.0f,  0.5f},  // 3 - bal elülső
-        { 0.0f, 1.0f,  0.0f}   // 4 - csúcs
-    };
-    
-    int faces[6][3] = {
-        {0,1,4},
-        {1,2,4},
-        {2,3,4},
-        {3,0,4},
-        {0,1,2}, // alap (két háromszög)
-        {0,2,3}
-    };
-    
+    Clear(0x101010);
+
+    // Kamera és projekció setup
     Camera cam;
-    cam.position = Vec3(
-        radius * sinf(camAngle),
-        height,
-        radius * cosf(camAngle)
-    );    
-    cam.target = Vec3(0.0f, 0.5f, 0.0f);
+    cam.position = Vec3(0, 0, 3);
+    cam.target = Vec3(0, 0, 0);
     cam.up = Vec3(0, 1, 0);
 
     mat4 view = cam.GetViewMatrix();
-    mat4 proj = cam.GetProjectionMatrix(0.5f, float(WIDTH)/HEIGHT, 0.1f, 100.0f);
+    mat4 proj = cam.GetProjectionMatrix(1.0f, float(WIDTH)/HEIGHT, 0.1f, 100.0f);
 
-    mat4 model = mat4::Identity();
+    // Teszt háromszög a világban
+    Vec3 p1(-0.5f, -0.5f, 0.0f);
+    Vec3 p2(0.5f, -0.5f, 0.0f);
+    Vec3 p3(0.0f, 0.5f, 0.0f);
 
-    for (int i = 0; i < 6; i++) {
-        Vec3 v0 = verts[faces[i][0]];
-        Vec3 v1 = verts[faces[i][1]];
-        Vec3 v2 = verts[faces[i][2]];
+    // Projektálás
+    Vec3 a = ProjectPoint(p1, view, proj);
+    Vec3 b = ProjectPoint(p2, view, proj);
+    Vec3 c = ProjectPoint(p3, view, proj);
 
-        Vec4 p1 = model * Vec4(v0, 1);
-        Vec4 p2 = model * Vec4(v1, 1);
-        Vec4 p3 = model * Vec4(v2, 1);
-
-        Vec3 a = cam.ProjectPoint(Vec3(p1.x, p1.y, p1.z), view, proj);
-        Vec3 b = cam.ProjectPoint(Vec3(p2.x, p2.y, p2.z), view, proj);
-        Vec3 c = cam.ProjectPoint(Vec3(p3.x, p3.y, p3.z), view, proj);
-
-        DrawTriangle(framebuffer.data(), WIDTH, HEIGHT, a, b, c, 0xFFFFFFFF);
-    }
+    DrawTriangle(framebuffer.data(), WIDTH, HEIGHT, a, b, c, 0xFFFFFFFF);
 }
 
 // -------------------------------------------------
@@ -159,7 +121,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
-            Sleep(16);
             Render();
 
             BITMAPINFO bmi = {0};
