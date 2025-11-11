@@ -53,6 +53,8 @@ namespace math {
                         v1_.x * v2_.y - v1_.y * v2_.x,
                         1.0f);
         }
+
+        Vec3 ToVec3() { return Vec3(x, y, z); }
     };
 }
 

@@ -10,7 +10,6 @@ namespace math
     {
         float m[4][4] = { 0 };
 
-
         // Vec3 operators
         Vec3 operator*(const Vec3& v_) const { 
             float x_ = m[0][0]*v_.x + m[0][1]*v_.y + m[0][2]*v_.z + m[0][3]*1;
@@ -133,6 +132,40 @@ namespace math
             mat4 trs_ = trans_mat * rot_mat * scale_mat;
 
             return trs_;
+        }
+
+        mat4 Transpose() const {
+            mat4 t;
+            for (int i = 0; i < 4; ++i)
+                for (int j = 0; j < 4; ++j)
+                    t.m[i][j] = m[j][i];
+            
+            return t;
+        }
+
+        mat4 Inverse3x3() const {
+            mat4 inv = mat4::Identity();
+
+            float a = m[0][0], b = m[0][1], c = m[0][2];
+            float d = m[1][0], e = m[1][1], f = m[1][2];
+            float g = m[2][0], h = m[2][1], i = m[2][2];
+
+            float det = a*(e*i - f*h) - b*(d*i - f*g) + c*(d*h - e*g);
+            if (det == 0) return inv; // nem invertálható
+
+            float invDet = 1.0f / det;
+
+            inv.m[0][0] =  (e*i - f*h) * invDet;
+            inv.m[0][1] = -(b*i - c*h) * invDet;
+            inv.m[0][2] =  (b*f - c*e) * invDet;
+            inv.m[1][0] = -(d*i - f*g) * invDet;
+            inv.m[1][1] =  (a*i - c*g) * invDet;
+            inv.m[1][2] = -(a*f - c*d) * invDet;
+            inv.m[2][0] =  (d*h - e*g) * invDet;
+            inv.m[2][1] = -(a*h - b*g) * invDet;
+            inv.m[2][2] =  (a*e - b*d) * invDet;
+
+            return inv;
         }
     };
 

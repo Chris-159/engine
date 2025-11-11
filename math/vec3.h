@@ -50,6 +50,15 @@ namespace math {
                         v1_.z * v2_.x - v1_.x * v2_.z,
                         v1_.x * v2_.y - v1_.y * v2_.x);
         }
+
+        // Converts NDC to screen coordinates
+        static Vec3 ToScreen(const Vec3& ndc_, int32_t width_, int32_t height_) {
+            return Vec3(
+                (ndc_.x * 0.5f + 0.5f) * width_,
+                (1.0f - (ndc_.y * 0.5f + 0.5f)) * height_,
+                ndc_.z
+            );
+        }
     };
 }
 
