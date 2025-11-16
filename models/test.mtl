@@ -1,0 +1,16 @@
+# Simple material test
+map_Kd texture.png
+
+newmtl Gold
+Ka 0.2 0.15 0.05
+Kd 1.0 0.84 0.0
+Ks 1.0 0.9 0.7
+Ke 0.0 0.0 0.0
+Ns 64.0
+
+newmtl RedPlastic
+Ka 0.1 0.0 0.0
+Kd 0.8 0.1 0.1
+Ks 1.0 0.6 0.6
+Ke 0.0 0.0 0.0
+Ns 32.0

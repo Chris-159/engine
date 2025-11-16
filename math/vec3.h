@@ -2,6 +2,7 @@
 #define VEC3_H
 
 #include<math.h>
+#include<stdint.h>
 
 namespace math {
     struct Vec3

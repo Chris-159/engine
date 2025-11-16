@@ -70,6 +70,13 @@ namespace math
             return Vec3(clipPos.x, clipPos.y, clipPos.z);
         }
 
+        // math::Vec4 Camera::ProjectPoint4(const math::Vec3& worldPos, const math::mat4& view, const math::mat4& proj) const {
+        //     // world -> view -> clip
+        //     math::Vec4 v(worldPos, 1.0f);
+        //     math::Vec4 viewV = view * v;
+        //     math::Vec4 clipV = proj * viewV;
+        //     return clipV; // (x,y,z,w) clip space; NDC = clipV / clipV.w
+        // }
     };
 } // namespace math
 

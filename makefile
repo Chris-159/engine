@@ -3,12 +3,12 @@ CXX := g++
 CXXFlags := -std=c++17 -Wall -Wextra -Icore -Iloader
 
 # Dirs
-SRC_DIRS := core loader math transform renderer
+SRC_DIRS := core loader math transform renderer misc
 OBJ_DIR := obj
 BIN := engine
 
 # Source files
-SRC_FILES := main.cpp $(wildcard loader/*.cpp) $(wildcard core/*.cpp) $(wildcard renderer/*.cpp)
+SRC_FILES := main.cpp $(wildcard loader/*.cpp) $(wildcard core/*.cpp) $(wildcard renderer/*.cpp) $(wildcard misc/*.cpp)
 
 # Object files
 OBJ_FILES := $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(notdir $(SRC_FILES)))
@@ -39,6 +39,11 @@ $(OBJ_DIR)/%.o: core/%.cpp | $(OBJ_DIR)
 # Compile renderer .cpp -> .o
 $(OBJ_DIR)/%.o: renderer/%.cpp | $(OBJ_DIR)
 	@echo "🧱 Compiling renderer $<..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Compile misc .cpp -> .o
+$(OBJ_DIR)/%.o: misc/%.cpp | $(OBJ_DIR)
+	@echo "🧱 Compiling misc $<..."
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Ensure obj dir exists

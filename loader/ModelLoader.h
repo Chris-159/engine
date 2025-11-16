@@ -7,13 +7,16 @@
 namespace loader {
     class ModelLoader {
         public:
-            core::Model LoadObj(const std::string& path);
+            core::Model LoadObj(const std::string& path_);
             // ModelS LoadSTL(const std::string& path);
-            
+
+            static inline void TrimString(std::string &str_);
+        
         private:
-            bool ParseVertex(const std::string& line, core::Model& model);
-            bool ParseFace(const std::string& line, core::Model& model);
-    };
+            bool ParseVertex(const std::string& line_, core::Model& model_);
+            bool ParseFace(const std::string& line_, const std::string& materialName_, core::Model& model_);
+            bool ParseTexCoord(const std::string& line_, core::Model& model_);
+        };
     
 } // namespace loader
 

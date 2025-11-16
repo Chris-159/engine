@@ -3,9 +3,12 @@
 
 #include<vector>
 #include<string>
+#include<unordered_map>
 
 #include "Vertex.h"
 #include "Face.h"
+
+#include "../misc/material.h"
 
 namespace core
 {
@@ -14,9 +17,19 @@ namespace core
         std::vector<Vertex> vertices;
         std::vector<Face> faces;
 
+        struct TexCoord { float u, v; };
+        std::vector<TexCoord> texcoords;
+
+        misc::Material material;
+
+        std::unordered_map<std::string, misc::Material> materials;
+        std::vector<std::string> faceMaterial;
+
         void Clear() {
             vertices.clear();
             faces.clear();
+            texcoords.clear();
+            materials.clear();
         }
 
         [[nodiscard]] size_t VertexCount() const { return vertices.size(); }

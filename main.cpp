@@ -11,10 +11,12 @@
 #include "core/Model.h"
 #include "renderer/Renderer.h"
 #include "loader/ModelLoader.h"
+#include "loader/ImageLoader.h"
 
 using namespace math;
 using namespace core;
 using namespace renderer;
+using namespace misc;
 
 // -----------------------------------------------------------------------------
 const int WIDTH = 800;
@@ -28,47 +30,79 @@ core::Model CreateTestModel()
     core::Model model;
 
     loader::ModelLoader loader;
-    model = loader.LoadObj("models/pyramid.obj");
+    model = loader.LoadObj("models/pyramid_uv.obj");
 
     std::cout << "Loaded vertices: " << model.VertexCount() << "\n";
     std::cout << "Loaded faces: " << model.FaceCount() << "\n";
     
-    // core::Model model;
-
-    // // 5 vertex
-    // model.vertices = {
-    //     { -0.5f, 0.0f, -0.5f },  // 0
-    //     {  0.5f, 0.0f, -0.5f },  // 1
-    //     {  0.5f, 0.0f,  0.5f },  // 2
-    //     { -0.5f, 0.0f,  0.5f },  // 3
-    //     {  0.0f, 1.0f,  0.0f }   // 4 (csúcs)
-    // };
-
-    // core::Face f1; f1.vertexIndices = {0, 1, 4};
-    // core::Face f2; f2.vertexIndices = {1, 2, 4};
-    // core::Face f3; f3.vertexIndices = {2, 3, 4};
-    // core::Face f4; f4.vertexIndices = {3, 0, 4};
-    // core::Face f5; f5.vertexIndices = {0, 1, 2};
-    // core::Face f6; f6.vertexIndices = {0, 2, 3};
-
-    // model.faces = { f1, f2, f3, f4, f5, f6 };
-
     return model;
 }
+
+core::Model CreateTestModel1()
+// ---- QUICK MODEL LOADER TEST ----
+{
+    loader::ModelLoader ml;
+
+    std::cout << "=============================\n";
+    std::cout << " QUICK OBJ PARSER TEST START\n";
+    std::cout << "=============================\n";
+
+    core::Model testModel = ml.LoadObj("models/test1.obj");
+
+    std::cout << "\n[TEST] Vertex count = " << testModel.vertices.size() << "\n";
+    std::cout << "[TEST] Texcoord count = " << testModel.texcoords.size() << "\n";
+    std::cout << "[TEST] Face count = " << testModel.faces.size() << "\n";
+
+    std::cout << "\n[TEST] Dump faces:\n";
+    for (int i = 0; i < testModel.faces.size(); i++)
+    {
+        const auto& f = testModel.faces[i];
+        std::cout << "  Face " << i << " material=" << f.materialName << "\n";
+        std::cout << "    V: ";
+        for (int vi : f.vertexIndices) std::cout << vi << " ";
+        std::cout << "\n    UV: ";
+        for (int ti : f.texcoordIndices) std::cout << ti << " ";
+        std::cout << "\n";
+    }
+
+    std::cout << "\n[TEST] Dump materials:\n";
+    for (auto& [name, mat] : testModel.materials)
+    {
+        std::cout << "  Material " << name << "\n";
+        std::cout << "    Kd: " << mat.color.x << " " << mat.color.y << " " << mat.color.z << "\n";
+    }
+
+    std::cout << "===========================\n";
+    std::cout << " QUICK OBJ PARSER TEST END\n";
+    std::cout << "===========================\n\n";
+
+    return core::Model();
+}
+// ---- END TEST ----
 
 // -----------------------------------------------------------------------------
 // Renderer setup
 Renderer renderer_(framebuffer.data(), WIDTH, HEIGHT);
 core::Model model = CreateTestModel();
+//core::Model m = CreateTestModel1();
 bool loaded = false;
 Camera cam;
+Light sun;
+
 
 // -----------------------------------------------------------------------------
 void Render()
 {
     renderer_.Clear(0x202020);
     static float camAngle = 0.0f;
-    camAngle += 0.01f;
+    camAngle += 0.005f;
+
+    // lighting
+    sun.direction = Vec3(0.5f, -1.0f, -0.5f).Normalized(); // -0.5f, -0.3f, -1.0f
+    sun.intensity = 1.2f;
+    sun.ambient = 0.25f; // 0.1f
+    renderer_.SetLight(sun);
+    // ------
 
     float radius = 5.0f;
     float height = 1.5f + sinf(camAngle * 0.5f) * 0.5f;
