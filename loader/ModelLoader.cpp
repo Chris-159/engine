@@ -48,6 +48,8 @@ core::Model ModelLoader::LoadObj(const std::string& path_) {
             ParseVertex(line, model);
         } else if (line[0] == 'f' && line[1] == ' ') {
             ParseFace(line, currentMaterialName, model);
+        } else if (line.rfind("vn", 0) == 0) {
+            ParseNormal(line, model);
         }
     }
 
@@ -112,10 +114,24 @@ bool ModelLoader::ParseTexCoord(const std::string& line_, core::Model& model_) {
     float u = 0.0f, v = 0.0f;
     iss >> prefix >> u >> v;
     if (iss.fail()) {
-        std::cout << "[Loader-UV] Error parsing texcoord line_: " << line_ << "\n";
+        std::cout << "[Loader-UV] Error parsing texcoord line: " << line_ << "\n";
         return false;
     }
     model_.texcoords.push_back({u, v});
+    return true;
+}
+
+bool ModelLoader::ParseNormal(const std::string& line_, core::Model& model_) {
+    std::istringstream iss(line_);
+    std::string key;
+    float x, y, z;
+    iss >> key >> x >> y >> z;
+    if (iss.fail()) {
+        std::cout << "[Loader-UV] Error parsing normals line: " << line_ << "\n";
+        return false;
+    }
+
+    model_.normals.emplace_back(x, y, z);
     return true;
 }
 
@@ -131,6 +147,7 @@ bool ModelLoader::ParseFace(const std::string& line_, const std::string& current
 
     std::vector<int> vIndices;
     std::vector<int> vtIndices;
+    std::vector<int> vnIndices;
 
     std::string token;
     while (iss >> token) {
@@ -139,7 +156,9 @@ bool ModelLoader::ParseFace(const std::string& line_, const std::string& current
 
         // split token by '/'
         int vi = -1, vti = -1, vni = -1;
+
         size_t p1 = token.find('/');
+
         if (p1 == std::string::npos) {
             // "v"
             vi = std::stoi(token) - 1;
@@ -149,6 +168,7 @@ bool ModelLoader::ParseFace(const std::string& line_, const std::string& current
             if (!s1.empty()) vi = std::stoi(s1) - 1;
 
             size_t p2 = token.find('/', p1 + 1);
+
             if (p2 == std::string::npos) {
                 // "v/vt"
                 std::string s2 = token.substr(p1 + 1);
@@ -158,7 +178,7 @@ bool ModelLoader::ParseFace(const std::string& line_, const std::string& current
                 std::string s2 = token.substr(p1 + 1, p2 - (p1 + 1));
                 if (!s2.empty()) vti = std::stoi(s2) - 1;
 
-                std::string s3 = token.substr(p2 + 1);
+                std::string s3 = token.substr(p2 + 1); // vn
                 if (!s3.empty()) vni = std::stoi(s3) - 1;
             }
         }
@@ -170,6 +190,7 @@ bool ModelLoader::ParseFace(const std::string& line_, const std::string& current
 
         vIndices.push_back(vi);
         vtIndices.push_back(vti); // possibly -1
+        vnIndices.push_back(vni);
     }
 
     if (vIndices.size() < 3) {
@@ -180,6 +201,7 @@ bool ModelLoader::ParseFace(const std::string& line_, const std::string& current
     // Triangulate fan-style if polygon > 3 (v0,v(i),v(i+1))
     int v0 = vIndices[0];
     int vt0 = vtIndices[0];
+    int vn0 = vnIndices[0];
 
     for (size_t i = 1; i + 1 < vIndices.size(); ++i) {
         core::Face f;
@@ -192,32 +214,15 @@ bool ModelLoader::ParseFace(const std::string& line_, const std::string& current
         f.texcoordIndices.push_back(vt0);
         f.texcoordIndices.push_back(vtIndices[i]);
         f.texcoordIndices.push_back(vtIndices[i+1]);
+        
+        f.normalIndices.push_back(vn0);
+        f.normalIndices.push_back(vnIndices[i]);
+        f.normalIndices.push_back(vnIndices[i+1]);
 
         f.materialName = currentMaterialName_;
+
         model_.faces.push_back(std::move(f));
     }
 
     return true;
 }
-
-
-// bool ModelLoader::ParseFace(const std::string& line_, const std::string& materialName_, core::Model& model_) {
-//     std::stringstream iss(line_);
-//     char prefix;
-//     std::vector<int> indices;
-
-//     iss >> prefix;
-
-//     int index;
-//     while (iss >> index) {
-//         indices.push_back(index - 1); // using 0-based index
-//     }
-    
-//     if (!indices.empty()) {
-//         model_.faces.emplace_back(indices, materialName_);
-//         return true;
-//     }
-
-//     std::cout << "[Loader-Face]: Faulty face line: " << line_ << "\n";
-//     return false;
-// }

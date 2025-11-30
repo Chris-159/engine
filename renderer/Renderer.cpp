@@ -1,8 +1,11 @@
-#include "Renderer.h"
 #include<iostream>
+
+#include "Renderer.h"
+#include "../settings/Settings.h"
 
 using namespace renderer;
 using namespace math;
+using namespace settings;
 
 //  CONSTRUCTOR
 Renderer::Renderer(uint32_t* framebuffer_, int32_t width_, int32_t height_) :
@@ -14,22 +17,6 @@ Renderer::Renderer(uint32_t* framebuffer_, int32_t width_, int32_t height_) :
         }
 // -----------------------------
 
-void Renderer::SetCamera(const math::mat4& viewMatrix_, const math::mat4& projectionMatrix_) {
-    viewMatrix = viewMatrix_;
-    projectionMatrix = projectionMatrix_;
-}
-
-void Renderer::SetActiveCamera(math::Camera* camera_) {
-    camera = camera_;
-}
-
-void Renderer::SetModelMatrix(const math::mat4& modelMatrix_) {
-    modelMatrix = modelMatrix_;
-}
-
-void Renderer::SetLight(const misc::Light& light_) {
-    mainLight = light_;
-}
 
 void Renderer::DrawLine(uint32_t* framebuffer_, int width_, int height_,
               int x0, int y0, int x1, int y1, uint32_t color_)
@@ -67,217 +54,519 @@ void Renderer::DrawTriangleWireframe(uint32_t* framebuffer_, int width_, int hei
     Renderer::DrawLine(framebuffer_, width_, height_, x2, y2, x0, y0, color_);
 }
 
-void Renderer::ComputeBarycentric(float px_, float py_, 
-            const math::Vec3& a_, 
-            const math::Vec3& b_, 
-            const math::Vec3& c_,
-            float& u_, float& v_, float& w_) 
-{
-    math::Vec3 v0 = b_ - a_;
-    math::Vec3 v1 = c_ - a_;
-    math::Vec3 v2(px_ - a_.x, py_ - a_.y, 0.0f);
 
-    float d00 = math::Vec3::Dot(v0, v0);
-    float d01 = math::Vec3::Dot(v0, v1);
-    float d11 = math::Vec3::Dot(v1, v1);
-    float d20 = math::Vec3::Dot(v2, v0);
-    float d21 = math::Vec3::Dot(v2, v1);
 
-    float denom = d00 * d11 - d01 * d01;
-    // degenerate triangle
-    if (fabs(denom) < 1e-8f) {
-        u_ = v_ = w_ = -1.0f;
-        return;
-    }
+// void Renderer::DrawTriangleFilled(
+//     uint32_t* framebuffer_, int width_, int height_,
+//     const math::Vec3& s0, const math::Vec3& s1, const math::Vec3& s2,
+//     uint32_t color_,
+//     const misc::Texture* texture,
+//     const math::Vec3* uv0, const math::Vec3* uv1, const math::Vec3* uv2,
+//     const float* recipW0, const float* recipW1, const float* recipW2,
+//     bool perspectiveCorrect
+// ) {
+//     float minX = std::min({ s0.x, s1.x, s2.x });
+//     float maxX = std::max({ s0.x, s1.x, s2.x });
+//     float minY = std::min({ s0.y, s1.y, s2.y });
+//     float maxY = std::max({ s0.y, s1.y, s2.y });
 
-    v_ = (d11 * d20 - d01 * d21) / denom;
-    w_ = (d00 * d21 - d01 * d20) / denom;
-    u_ = 1.0f - v_ - w_;
-}
+//     minX = std::max(minX, 0.0f);
+//     minY = std::max(minY, 0.0f);
+//     maxX = std::min(maxX, float(width_ - 1));
+//     maxY = std::min(maxY, float(height_ - 1));
+
+//     for (int y = int(minY); y <= int(maxY); ++y) {
+//         for (int x = int(minX); x <= int(maxX); ++x) {
+
+//             float u, v, w;
+//             ComputeBarycentric(float(x) + 0.5f, float(y) + 0.5f, s0, s1, s2, u, v, w);
+
+//             const float eps = -0.0001f;
+//             if (u < eps || v < eps || w < eps) continue;
+
+//             float z = u * s0.z + v * s1.z + w * s2.z;
+//             int pixelIndex = y * width_ + x;
+
+//             if (z < depthBuffer[pixelIndex]) {
+
+//                 uint32_t outColor = color_;
+
+//                 if (texture && uv0 && uv1 && uv2) {
+//                     if (!perspectiveCorrect || !(recipW0 && recipW1 && recipW2))
+//                     {
+//                         // AFFINE
+//                         float U = u * uv0->x + v * uv1->x + w * uv2->x;
+//                         float V = u * uv0->y + v * uv1->y + w * uv2->y;
+//                         outColor = texture->Sample(U, V);
+//                     }
+//                     else
+//                     {
+//                         // perspective
+//                         float oneOverW =
+//                             u * (*recipW0) + v * (*recipW1) + w * (*recipW2);
+
+//                         float U_over_W =
+//                             u * (uv0->x * (*recipW0)) +
+//                             v * (uv1->x * (*recipW1)) +
+//                             w * (uv2->x * (*recipW2));
+
+//                         float V_over_W =
+//                             u * (uv0->y * (*recipW0)) +
+//                             v * (uv1->y * (*recipW1)) +
+//                             w * (uv2->y * (*recipW2));
+
+//                         float U = U_over_W / oneOverW;
+//                         float V = V_over_W / oneOverW;
+
+//                         outColor = texture->Sample(U, V);
+//                     }
+//                 }
+
+//                 depthBuffer[pixelIndex] = z;
+//                 framebuffer_[pixelIndex] = outColor;
+//             }
+//         }
+//     }
+// }
+
+// void Renderer::DrawTriangleFilled(
+//             uint32_t* framebuffer_, int width_, int height_,
+//             const math::Vec3& s0_, const math::Vec3& s1_, const math::Vec3& s2_,
+//             uint32_t color_,
+//             const misc::Texture* texture_,
+//             const math::Vec3* uv0_,
+//             const math::Vec3* uv1_,
+//             const math::Vec3* uv2_,
+//             const float* recipW0_,
+//             const float* recipW1_,
+//             const float* recipW2_,
+//             const math::Vec3* n0_,
+//             const math::Vec3* n1_,
+//             const math::Vec3* n2_,
+//             const math::Vec3* viewPos0_,
+//             const math::Vec3* viewPos1_,
+//             const math::Vec3* viewPos2_,
+//             bool perspectiveCorrect_
+// ) {
+//     float minX = std::min({ s0_.x, s1_.x, s2_.x });
+//     float maxX = std::max({ s0_.x, s1_.x, s2_.x });
+//     float minY = std::min({ s0_.y, s1_.y, s2_.y });
+//     float maxY = std::max({ s0_.y, s1_.y, s2_.y });
+
+//     minX = std::max(minX, 0.0f);
+//     minY = std::max(minY, 0.0f);
+//     maxX = std::min(maxX, float(width_ - 1));
+//     maxY = std::min(maxY, float(height_ - 1));
+
+//     // whether we have normals/view positions for per-pixel lighting
+//     bool hasVertexNormals = (n0_ && n1_ && n2_);
+//     bool hasViewPos = (viewPos0_ && viewPos1_ && viewPos2_);
+
+//     for (int y = int(minY); y <= int(maxY); ++y) {
+//         for (int x = int(minX); x <= int(maxX); ++x) {
+
+//             // sample at pixel center
+//             float u, v, w;
+//             ComputeBarycentric(float(x) + 0.5f, float(y) + 0.5f, s0_, s1_, s2_, u, v, w);
+
+//             const float eps = -0.0001f;
+//             if (u < eps || v < eps || w < eps) continue;
+
+//             // interpolated z (screen space) for depth test
+//             float z = u * s0_.z + v * s1_.z + w * s2_.z;
+//             int pixelIndex = y * width_ + x;
+
+//             if (z >= depthBuffer[pixelIndex]) continue;
+
+//             uint32_t outColor = color_;
+
+//             // TEXTURE sampling (same as before) - perspective correct if requested
+//             if (texture_ && uv0_ && uv1_ && uv2_) {
+//                 if (!perspectiveCorrect_ || !(recipW0_ && recipW1_ && recipW2_)) {
+//                     // affine interpolate UVs
+//                     float U = u * uv0_->x + v * uv1_->x + w * uv2_->x;
+//                     float V = u * uv0_->y + v * uv1_->y + w * uv2_->y;
+//                     outColor = texture_->Sample(U, V);
+//                 } else {
+//                     float oneOverW =
+//                         u * (*recipW0_) + v * (*recipW1_) + w * (*recipW2_);
+
+//                     float U_over_W =
+//                         u * (uv0_->x * (*recipW0_)) +
+//                         v * (uv1_->x * (*recipW1_)) +
+//                         w * (uv2_->x * (*recipW2_));
+
+//                     float V_over_W =
+//                         u * (uv0_->y * (*recipW0_)) +
+//                         v * (uv1_->y * (*recipW1_)) +
+//                         w * (uv2_->y * (*recipW2_));
+
+//                     float U = U_over_W / oneOverW;
+//                     float V = V_over_W / oneOverW;
+
+//                     outColor = texture_->Sample(U, V);
+//                 }
+//             }
+
+//             // If we have per-vertex normals and/or view positions, interpolate them and compute lighting per-pixel.
+//             if (hasVertexNormals || hasViewPos) {
+//                 math::Vec3 interpNormal(0,0,0);
+//                 math::Vec3 interpViewPos(0,0,0);
+
+//                 if (!perspectiveCorrect_ || !(recipW0_ && recipW1_ && recipW2_)) {
+//                     // AFFINE interpolation (no /w)
+//                     if (hasVertexNormals) {
+//                         interpNormal = (*n0_) * u + (*n1_) * v + (*n2_) * w;
+//                         interpNormal = interpNormal.Normalized();
+//                     }
+//                     if (hasViewPos) {
+//                         interpViewPos = (*viewPos0_) * u + (*viewPos1_) * v + (*viewPos2_) * w;
+//                     }
+//                 } else {
+//                     // PERSPECTIVE-CORRECT interpolation for vectors/positions:
+//                     float oneOverW =
+//                         u * (*recipW0_) + v * (*recipW1_) + w * (*recipW2_);
+
+//                     if (hasVertexNormals) {
+//                         float nx_over_w =
+//                             u * (n0_->x * (*recipW0_)) +
+//                             v * (n1_->x * (*recipW1_)) +
+//                             w * (n2_->x * (*recipW2_));
+//                         float ny_over_w =
+//                             u * (n0_->y * (*recipW0_)) +
+//                             v * (n1_->y * (*recipW1_)) +
+//                             w * (n2_->y * (*recipW2_));
+//                         float nz_over_w =
+//                             u * (n0_->z * (*recipW0_)) +
+//                             v * (n1_->z * (*recipW1_)) +
+//                             w * (n2_->z * (*recipW2_));
+
+//                         interpNormal = math::Vec3(nx_over_w / oneOverW,
+//                                                   ny_over_w / oneOverW,
+//                                                   nz_over_w / oneOverW).Normalized();
+//                     }
+
+//                     if (hasViewPos) {
+//                         float vx_over_w =
+//                             u * (viewPos0_->x * (*recipW0_)) +
+//                             v * (viewPos1_->x * (*recipW1_)) +
+//                             w * (viewPos2_->x * (*recipW2_));
+//                         float vy_over_w =
+//                             u * (viewPos0_->y * (*recipW0_)) +
+//                             v * (viewPos1_->y * (*recipW1_)) +
+//                             w * (viewPos2_->y * (*recipW2_));
+//                         float vz_over_w =
+//                             u * (viewPos0_->z * (*recipW0_)) +
+//                             v * (viewPos1_->z * (*recipW1_)) +
+//                             w * (viewPos2_->z * (*recipW2_));
+
+//                         interpViewPos = math::Vec3(vx_over_w / oneOverW,
+//                                                    vy_over_w / oneOverW,
+//                                                    vz_over_w / oneOverW);
+//                     }
+//                 }
+
+//                 // If we have interpolated a normal and a view position (or at least assume camera at origin in view space),
+//                 // compute per-pixel lighting:
+//                 if (hasVertexNormals) {
+//                     // view direction: from fragment toward camera (camera is at origin in view-space)
+//                     math::Vec3 viewDir;
+//                     if (hasViewPos) {
+//                         viewDir = (-interpViewPos).Normalized(); // camera at (0,0,0)
+//                     } else {
+//                         // fallback: approximate using screen-space - use triangle average direction (not ideal but safe)
+//                         viewDir = math::Vec3(0,0,1);
+//                     }
+
+//                     // Apply per-pixel lighting using interpolated normal and viewDir.
+//                     outColor = ApplyLight(currentModel ? currentModel->material : misc::Material(), mainLight, interpNormal, viewDir);
+
+//                     // If we also had a texture sample, we can modulate texture by lighting:
+//                     if (texture_ && uv0_ && uv1_ && uv2_) {
+//                         // combine shaded lighting (outColor) with sampled texture color (outColorTex)
+//                         // outColor currently has lighting from material color; but the previous texture sample wrote into outColor.
+//                         // To keep consistent: compute shadedColor from material (as above) and multiply with texture sample.
+//                         // We'll extract the shaded color and sampled color, then modulate.
+//                         // Extract shadedColor components:
+//                         uint32_t sampled = texture_->Sample(0.0f, 0.0f); // placeholder, but we already have texture sampled earlier in outColor
+//                         // The code path above overwrote outColor with texture sample in either case.
+//                         // To correctly combine: do the lighting computation into a local variable and combine with texture sample.
+//                         // (So reorganize slightly:)
+//                     }
+//                 }
+//             }
+
+//             // Better approach: compute lighting into shadedColor, then if texture present multiply.
+//             // To keep code clearer, redo per-pixel shading here with proper separation:
+
+//             // ---- recompute shadedColor properly ----
+//             uint32_t finalColor = outColor; // fallback
+
+//             // If we have normals, compute shadedColor from material using interpNormal/viewDir
+//             if (hasVertexNormals) {
+//                 // compute interpNormal and interpViewPos again (we can refactor to avoid double work; left verbose for clarity)
+//                 math::Vec3 interpNormal2(0,0,0);
+//                 math::Vec3 interpViewPos2(0,0,0);
+
+//                 if (!perspectiveCorrect_ || !(recipW0_ && recipW1_ && recipW2_)) {
+//                     interpNormal2 = (*n0_) * u + (*n1_) * v + (*n2_) * w;
+//                     interpNormal2 = interpNormal2.Normalized();
+//                     if (hasViewPos) interpViewPos2 = (*viewPos0_) * u + (*viewPos1_) * v + (*viewPos2_) * w;
+//                 } else {
+//                     float oneOverW =
+//                         u * (*recipW0_) + v * (*recipW1_) + w * (*recipW2_);
+
+//                     interpNormal2 = math::Vec3(
+//                         (u * (n0_->x * (*recipW0_)) + v * (n1_->x * (*recipW1_)) + w * (n2_->x * (*recipW2_))) / oneOverW,
+//                         (u * (n0_->y * (*recipW0_)) + v * (n1_->y * (*recipW1_)) + w * (n2_->y * (*recipW2_))) / oneOverW,
+//                         (u * (n0_->z * (*recipW0_)) + v * (n1_->z * (*recipW1_)) + w * (n2_->z * (*recipW2_))) / oneOverW
+//                     ).Normalized();
+
+//                     if (hasViewPos) {
+//                         interpViewPos2 = math::Vec3(
+//                             (u * (viewPos0_->x * (*recipW0_)) + v * (viewPos1_->x * (*recipW1_)) + w * (viewPos2_->x * (*recipW2_))) / oneOverW,
+//                             (u * (viewPos0_->y * (*recipW0_)) + v * (viewPos1_->y * (*recipW1_)) + w * (viewPos2_->y * (*recipW2_))) / oneOverW,
+//                             (u * (viewPos0_->z * (*recipW0_)) + v * (viewPos1_->z * (*recipW1_)) + w * (viewPos2_->z * (*recipW2_))) / oneOverW
+//                         );
+//                     }
+//                 }
+
+//                 math::Vec3 viewDir2 = hasViewPos ? (-interpViewPos2).Normalized() : math::Vec3(0,0,1);
+
+//                 // shaded color based on material of currentModel (fallback if null)
+//                 const misc::Material& matRef = currentModel ? ( (currentModel->faces.size()>0) ? *(&currentModel->material) : currentModel->material ) : misc::Material();
+//                 uint32_t shaded = ApplyLight(matRef, mainLight, interpNormal2, viewDir2);
+
+//                 if (texture_ && uv0_ && uv1_ && uv2_) {
+//                     // we already computed a sampled texture color earlier into 'outColor' (maybe overwritten)
+//                     // recompute sampled texture color properly:
+//                     uint32_t sampledColor;
+//                     if (!perspectiveCorrect_ || !(recipW0_ && recipW1_ && recipW2_)) {
+//                         float U = u * uv0_->x + v * uv1_->x + w * uv2_->x;
+//                         float V = u * uv0_->y + v * uv1_->y + w * uv2_->y;
+//                         sampledColor = texture_->Sample(U, V);
+//                     } else {
+//                         float oneOverW =
+//                             u * (*recipW0_) + v * (*recipW1_) + w * (*recipW2_);
+
+//                         float U_over_W =
+//                             u * (uv0_->x * (*recipW0_)) +
+//                             v * (uv1_->x * (*recipW1_)) +
+//                             w * (uv2_->x * (*recipW2_));
+
+//                         float V_over_W =
+//                             u * (uv0_->y * (*recipW0_)) +
+//                             v * (uv1_->y * (*recipW1_)) +
+//                             w * (uv2_->y * (*recipW2_));
+
+//                         float U = U_over_W / oneOverW;
+//                         float V = V_over_W / oneOverW;
+//                         sampledColor = texture_->Sample(U, V);
+//                     }
+
+//                     // multiply sampledColor (texture) with shaded (lighting). We'll do component-wise multiply (modulate).
+//                     uint8_t sr = (sampledColor >> 16) & 0xFF;
+//                     uint8_t sg = (sampledColor >> 8) & 0xFF;
+//                     uint8_t sb = (sampledColor) & 0xFF;
+
+//                     uint8_t lr = (shaded >> 16) & 0xFF;
+//                     uint8_t lg = (shaded >> 8) & 0xFF;
+//                     uint8_t lb = (shaded) & 0xFF;
+
+//                     uint8_t fr = uint8_t( (int(sr) * int(lr)) / 255 );
+//                     uint8_t fg = uint8_t( (int(sg) * int(lg)) / 255 );
+//                     uint8_t fb = uint8_t( (int(sb) * int(lb)) / 255 );
+
+//                     finalColor = (0xFFu << 24) | (fr << 16) | (fg << 8) | fb;
+//                 } else {
+//                     // no texture, just shaded color
+//                     finalColor = shaded;
+//                 }
+//             } else {
+//                 // no vertex normals: keep previous behavior (flat shading as passed via color_ or earlier outColor)
+//                 finalColor = outColor;
+//             }
+
+//             // write depth + color
+//             depthBuffer[pixelIndex] = z;
+//             framebuffer_[pixelIndex] = finalColor;
+//         }
+//     }    
+// }
 
 void Renderer::DrawTriangleFilled(
-    uint32_t* framebuffer_, int width_, int height_,
-    const math::Vec3& s0, const math::Vec3& s1, const math::Vec3& s2,
-    uint32_t color_,
-    const misc::Texture* texture,
-    const math::Vec3* uv0, const math::Vec3* uv1, const math::Vec3* uv2,
-    const float* recipW0, const float* recipW1, const float* recipW2,
-    bool perspectiveCorrect
+            uint32_t* framebuffer_, int width_, int height_,
+            const math::Vec3& s0_, const math::Vec3& s1_, const math::Vec3& s2_,
+            uint32_t color_,
+            const misc::Texture* texture_,
+            const misc::Material* material_,
+            const math::Vec3* uv0_,
+            const math::Vec3* uv1_,
+            const math::Vec3* uv2_,
+            const float* recipW0_,
+            const float* recipW1_,
+            const float* recipW2_,
+            const math::Vec3* n0_,
+            const math::Vec3* n1_,
+            const math::Vec3* n2_,
+            const math::Vec3* viewPos0_,
+            const math::Vec3* viewPos1_,
+            const math::Vec3* viewPos2_,
+            bool perspectiveCorrect_
 ) {
-    float minX = std::min({ s0.x, s1.x, s2.x });
-    float maxX = std::max({ s0.x, s1.x, s2.x });
-    float minY = std::min({ s0.y, s1.y, s2.y });
-    float maxY = std::max({ s0.y, s1.y, s2.y });
+    float minX = std::min({ s0_.x, s1_.x, s2_.x });
+    float maxX = std::max({ s0_.x, s1_.x, s2_.x });
+    float minY = std::min({ s0_.y, s1_.y, s2_.y });
+    float maxY = std::max({ s0_.y, s1_.y, s2_.y });
 
     minX = std::max(minX, 0.0f);
     minY = std::max(minY, 0.0f);
     maxX = std::min(maxX, float(width_ - 1));
     maxY = std::min(maxY, float(height_ - 1));
 
+    // whether we have normals/view positions for per-pixel lighting
+    bool hasVertexNormals = (n0_ && n1_ && n2_);
+    bool hasViewPos = (viewPos0_ && viewPos1_ && viewPos2_);
+
     for (int y = int(minY); y <= int(maxY); ++y) {
         for (int x = int(minX); x <= int(maxX); ++x) {
 
+            // sample at pixel center
             float u, v, w;
-            ComputeBarycentric((float)x, (float)y, s0, s1, s2, u, v, w);
+            ComputeBarycentric(float(x) + 0.5f, float(y) + 0.5f, s0_, s1_, s2_, u, v, w);
 
             const float eps = -0.0001f;
             if (u < eps || v < eps || w < eps) continue;
 
-            float z = u * s0.z + v * s1.z + w * s2.z;
+            // interpolated z (screen space) for depth test
+            float z = u * s0_.z + v * s1_.z + w * s2_.z;
             int pixelIndex = y * width_ + x;
 
-            if (z < depthBuffer[pixelIndex]) {
+            if (z >= depthBuffer[pixelIndex]) continue;
 
-                uint32_t outColor = color_;
+            // uint32_t outColor = color_;
 
-                if (texture && uv0 && uv1 && uv2) {
-                    if (!perspectiveCorrect || !(recipW0 && recipW1 && recipW2))
-                    {
-                        // AFFINE
-                        float U = u * uv0->x + v * uv1->x + w * uv2->x;
-                        float V = u * uv0->y + v * uv1->y + w * uv2->y;
-                        outColor = texture->Sample(U, V);
-                    }
-                    else
-                    {
-                        // perspective
-                        float oneOverW =
-                            u * (*recipW0) + v * (*recipW1) + w * (*recipW2);
+            // ---- recompute shadedColor properly ----
+            // 1. interpolate normal
+            math::Vec3 interpNormal(0,0,0);
+            math::Vec3 interpViewPos(0,0,0);
+            uint32_t finalColor = color_; // outColor
 
-                        float U_over_W =
-                            u * (uv0->x * (*recipW0)) +
-                            v * (uv1->x * (*recipW1)) +
-                            w * (uv2->x * (*recipW2));
+            if (hasVertexNormals) {
+                if (!perspectiveCorrect_ || !(recipW0_ && recipW1_ && recipW2_)) {
+                    // AFFINE
+                    interpNormal = (*n0_) * u + (*n1_) * v + (*n2_) * w;
+                    interpNormal = interpNormal.Normalized();
+                    
+                    if (hasViewPos)
+                        interpViewPos = (*viewPos0_) * u +
+                                        (*viewPos1_) * v +
+                                        (*viewPos2_) * w;
+                } else {
+                    // PERSPECTIVE CORRECT
+                    float oneOverW =
+                        u * (*recipW0_) + v * (*recipW1_) + w * (*recipW2_);
 
-                        float V_over_W =
-                            u * (uv0->y * (*recipW0)) +
-                            v * (uv1->y * (*recipW1)) +
-                            w * (uv2->y * (*recipW2));
+                    interpNormal = math::Vec3(
+                        (u * (n0_->x * (*recipW0_)) +
+                         v * (n1_->x * (*recipW1_)) +
+                         w * (n2_->x * (*recipW2_))) / oneOverW,
+                        
+                        (u * (n0_->y * (*recipW0_)) +
+                         v * (n1_->y * (*recipW1_)) +
+                         w * (n2_->y * (*recipW2_))) / oneOverW,
+                        
+                        (u * (n0_->z * (*recipW0_)) +
+                         v * (n1_->z * (*recipW1_)) +
+                         w * (n2_->z * (*recipW2_))) / oneOverW
+                    ).Normalized();
 
-                        float U = U_over_W / oneOverW;
-                        float V = V_over_W / oneOverW;
-
-                        outColor = texture->Sample(U, V);
+                    if (hasViewPos) {
+                        interpViewPos = math::Vec3(
+                            (u * (viewPos0_->x * (*recipW0_)) +
+                             v * (viewPos1_->x * (*recipW1_)) +
+                             w * (viewPos2_->x * (*recipW2_))) / oneOverW,
+                            
+                            (u * (viewPos0_->y * (*recipW0_)) +
+                             v * (viewPos1_->y * (*recipW1_)) +
+                             w * (viewPos2_->y * (*recipW2_))) / oneOverW,
+                            
+                             (u * (viewPos0_->z * (*recipW0_)) +
+                              v * (viewPos1_->z * (*recipW1_)) +
+                              w * (viewPos2_->z * (*recipW2_))) / oneOverW
+                        );
                     }
                 }
+                // --------------------------------------
 
-                depthBuffer[pixelIndex] = z - 1e-5f;
-                framebuffer_[pixelIndex] = outColor;
-            }
+                // 2. Compute view direction
+                math::Vec3 viewDir = hasViewPos ? (-interpViewPos).Normalized() : math::Vec3(0,0,1);
+                // -------------------------
+                //const misc::Material& matRef = currentModel ? ((currentModel->faces.size()>0) ? *(&currentModel->material) : currentModel->material) : misc::Material();
+                //uint32_t shaded = ApplyLight(matRef, mainLight, interpNormal2, viewDir2);
+
+                // 3. Apply material-based lighting
+                uint32_t litColor = 0xFFFFFFFF;
+                if (material_ && hasVertexNormals) {
+                    litColor = ApplyLight(*material_, mainLight, interpNormal, viewDir);
+                } else {
+                    litColor = color_;   // fallback
+                }
+                // ----------------------
+
+                // 4. Sample texture (if exists)
+                finalColor = litColor;
+                if (texture_ && uv0_ && uv1_ && uv2_) {
+                    //uint32_t sampledColor;
+                    float U, V;
+
+                    if (!perspectiveCorrect_ || !(recipW0_ && recipW1_ && recipW2_)) {
+                        U = u * uv0_->x + v * uv1_->x + w * uv2_->x;
+                        V = u * uv0_->y + v * uv1_->y + w * uv2_->y;
+                        //sampledColor = texture_->Sample(U, V);
+                    } else {
+                        float oneOverW =
+                            u * (*recipW0_) + v * (*recipW1_) + w * (*recipW2_);
+
+                        float U_over_W =
+                            u * (uv0_->x * (*recipW0_)) +
+                            v * (uv1_->x * (*recipW1_)) +
+                            w * (uv2_->x * (*recipW2_));
+
+                        float V_over_W =
+                            u * (uv0_->y * (*recipW0_)) +
+                            v * (uv1_->y * (*recipW1_)) +
+                            w * (uv2_->y * (*recipW2_));
+
+                        U = U_over_W / oneOverW;
+                        V = V_over_W / oneOverW;
+                    }
+
+                    uint32_t texColor = texture_->Sample(U, V);
+
+                    uint8_t sr = (texColor >> 16) & 0xFF;
+                    uint8_t sg = (texColor >> 8)  & 0xFF;
+                    uint8_t sb = (texColor)       & 0xFF;
+
+                    uint8_t lr = (litColor >> 16) & 0xFF;
+                    uint8_t lg = (litColor >> 8)  & 0xFF;
+                    uint8_t lb = (litColor)       & 0xFF;
+
+                    uint8_t fr = uint8_t((int(sr) * int(lr)) / 255);
+                    uint8_t fg = uint8_t((int(sg) * int(lg)) / 255);
+                    uint8_t fb = uint8_t((int(sb) * int(lb)) / 255);
+
+                    finalColor = (0xFFu << 24) | (fr << 16) | (fg << 8) | fb;
+                } 
+            } 
+            // ----------------------
+
+            // write depth + color
+            depthBuffer[pixelIndex] = z;
+            framebuffer_[pixelIndex] = finalColor;
         }
     }
-}
-
-// void Renderer::DrawTriangleFilled(uint32_t* framebuffer_, int width_, int height_,
-//                                   const math::Vec3& s0, const math::Vec3& s1, const math::Vec3& s2, uint32_t color_)
-// {
-//     float minX = std::min({ s0.x, s1.x, s2.x });
-//     float maxX = std::max({ s0.x, s1.x, s2.x });
-//     float minY = std::min({ s0.y, s1.y, s2.y });
-//     float maxY = std::max({ s0.y, s1.y, s2.y });
-
-//     // bounds checking (clamp)
-//     minX = std::max(minX, 0.0f);
-//     minY = std::max(minY, 0.0f);
-//     maxX = std::min(maxX, float(width_ - 1));
-//     maxY = std::min(maxY, float(height_ - 1));
-
-//     // Precompute edges
-//     math::Vec3 v0 = s1 - s0;
-//     math::Vec3 v1 = s2 - s0;
-
-//     float d00 = math::Vec3::Dot(v0, v0);
-//     float d01 = math::Vec3::Dot(v0, v1);
-//     float d11 = math::Vec3::Dot(v1, v1);
-//     float denom = d00 * d11 - d01 * d01;
-//     if (fabs(denom) < 1e-8f) return; // Degenerate triangle
-
-//     // Main rasterization loop
-//     for (int y = int(minY); y <= int(maxY); ++y) {
-//         for (int x = int(minX); x <= int(maxX); ++x) {
-//             math::Vec3 v2((float)x - s0.x, (float)y - s0.y, 0.0f);
-
-//             float d20 = math::Vec3::Dot(v2, v0);
-//             float d21 = math::Vec3::Dot(v2, v1);
-
-//             float v = (d11 * d20 - d01 * d21) / denom;
-//             float w = (d00 * d21 - d01 * d20) / denom;
-//             float u = 1.0f - v - w;
-
-//             const float eps = -0.0001f;
-//             if (u < eps || v < eps || w < eps)
-//                 continue;
-
-//             float z = u * s0.z + v * s1.z + w * s2.z;
-//             //float depth = (z * 0.5f) + 0.5f;
-
-//             int pixelIndex = y * width_ + x;
-
-//             // if (y % 100 == 0 && x % 100 == 0)
-//             //     std::cout << "z=" << z << " depth=" << depth
-//             //             << " buf=" << depthBuffer[pixelIndex] << std::endl;
-
-//             if (z < depthBuffer[pixelIndex]) {
-//                 depthBuffer[pixelIndex] = z - 1e-5f; // depth - 1e-4f
-//                 framebuffer_[pixelIndex] = color_;
-//             }
-//         }
-//     }
-// }
-
-// uint32_t Renderer::ApplyLight(uint32_t color_, float intensity_) {
-//     intensity_ = std::clamp(intensity_, 0.0f, 1.0f);
-
-//     // get each color value separately
-//     uint8_t r = (color_ >> 16) & 0xFF;
-//     uint8_t g = (color_ >> 8)  & 0xFF;
-//     uint8_t b = (color_)       & 0xFF;
-
-//     // apply color inetnsity to every chanel
-//     r = uint8_t(r * intensity_);
-//     g = uint8_t(g * intensity_);
-//     b = uint8_t(b * intensity_);
-
-//     // reassemble the color
-//     return (r << 16) | (g << 8) | b;
-// }
-
-// uint32_t Renderer::ApplyLight(
-//     const misc::Material& material,
-//     const misc::Light& light,
-//     const math::Vec3& normal,
-//     const math::Vec3& viewDir
-// ) {
-//     // Diffuse (Lambert)
-//     float diff = std::max(0.0f, math::Vec3::Dot(normal, -light.direction));
-
-//     // Specular (Phong)
-//     math::Vec3 reflectDir = Reflect(light.direction, normal);
-//     float spec = 0.0f;
-//     if (material.specular > 0.0f) {
-//         spec = powf(std::max(math::Vec3::Dot(viewDir, reflectDir), 0.0f), material.shininess);
-//     }
-
-//     // ambient + összegzés
-//     float total = 
-//         material.ambient * light.ambient +
-//         material.diffuse * diff * light.intensity +
-//         material.specular * spec * light.intensity;
-
-//     total = std::clamp(total, 0.0f, 1.0f);
-
-//     // calculate color
-//     math::Vec3 baseColor = material.color * total + material.emissive;
-//     baseColor.x = std::min(baseColor.x, 1.0f);
-//     baseColor.y = std::min(baseColor.y, 1.0f);
-//     baseColor.z = std::min(baseColor.z, 1.0f);
-
-//     uint8_t r = uint8_t(baseColor.x * 255);
-//     uint8_t g = uint8_t(baseColor.y * 255);
-//     uint8_t b = uint8_t(baseColor.z * 255);
-
-//     return (r << 16) | (g << 8) | b;
-// }
+}    
 
 uint32_t Renderer::ApplyLight(
     const misc::Material& material,
@@ -366,9 +655,11 @@ bool Renderer::DrawModel(core::Model& model_) {
             // ------------
 
             // 3. Projection
-            Vec3 proj0 = camera->ProjectPoint(v0, viewMatrix, projectionMatrix);
-            Vec3 proj1 = camera->ProjectPoint(v1, viewMatrix, projectionMatrix);
-            Vec3 proj2 = camera->ProjectPoint(v2, viewMatrix, projectionMatrix);
+            float clipW0, clipW1, clipW2; 
+
+            Vec3 proj0 = camera->ProjectPoint(v0, viewMatrix, projectionMatrix, clipW0);
+            Vec3 proj1 = camera->ProjectPoint(v1, viewMatrix, projectionMatrix, clipW1);
+            Vec3 proj2 = camera->ProjectPoint(v2, viewMatrix, projectionMatrix, clipW2);
 
             Vec3 s0 = math::Vec3::ToScreen(proj0, width, height);
             Vec3 s1 = math::Vec3::ToScreen(proj1, width, height);
@@ -444,23 +735,79 @@ bool Renderer::DrawModel(core::Model& model_) {
                 }
             }
             // ------------
+            
+            Vec3 vn0_world(0, 0, 0), vn1_world(0, 0, 0), vn2_world(0, 0, 0);
+            bool haveNormals = false;
+            if (!face.normalIndices.empty() &&
+                face.normalIndices.size() >= 3 &&
+                !currentModel->normals.empty())
+            {
+                int ni0 = face.normalIndices[0];
+                int ni1 = face.normalIndices[i];
+                int ni2 = face.normalIndices[i + 1];
+
+                if (ni0 >= 0 && ni1 >= 0 && ni2 >= 0 &&
+                    ni0 < currentModel->normals.size() &&
+                    ni1 < currentModel->normals.size() &&
+                    ni2 < currentModel->normals.size())
+                {
+                    Vec4 t0 = modelMatrix * Vec4(currentModel->normals[ni0], 0.0f);
+                    Vec4 t1 = modelMatrix * Vec4(currentModel->normals[ni1], 0.0f);
+                    Vec4 t2 = modelMatrix * Vec4(currentModel->normals[ni2], 0.0f);
+
+                    vn0_world = Vec3(t0.x, t0.y, t0.z).Normalized();
+                    vn1_world = Vec3(t1.x, t1.y, t1.z).Normalized();
+                    vn2_world = Vec3(t2.x, t2.y, t2.z).Normalized();
+
+                    haveNormals = true;
+                }
+            }
+
+            // Fallback: if no pre-vertex normals, use face normals (flat)
+            if (!haveNormals) {
+                vn0_world = vn1_world = vn2_world = normal;
+                haveNormals = true;
+            }
+            
+            Vec3 viewPos0 = v0v;
+            Vec3 viewPos1 = v1v;
+            Vec3 viewPos2 = v2v;
 
             // 8. Perspective correct (recipW)
-            float recipW0 = 1.0f / proj0.z;
-            float recipW1 = 1.0f / proj1.z;
-            float recipW2 = 1.0f / proj2.z;
+            bool usePerspective = (Settings::Get().projectionMode == ProjectionMode::AccurateClipW);
+
+            float recipW0 = 0.0f, recipW1 = 0.0f, recipW2 = 0.0f;
+            float* pRecipW0 = nullptr;
+            float* pRecipW1 = nullptr;
+            float* pRecipW2 = nullptr;
+
+            if (usePerspective) {
+                if (fabs(clipW0) > 1e-8f) recipW0 = 1.0f / clipW0;   
+                if (fabs(clipW1) > 1e-8f) recipW1 = 1.0f / clipW1;   
+                if (fabs(clipW2) > 1e-8f) recipW2 = 1.0f / clipW2;
+                
+                pRecipW0 = &recipW0;
+                pRecipW1 = &recipW1;
+                pRecipW2 = &recipW2;
+            }
             // ------------
+
+            const misc::Material* matPtr = mat;
 
             // 9. Draw the triangle (textured version)
             DrawTriangleFilled(frameBuffer, 
                 width, 
                 height, 
                 s0, s1, s2, 
-                shadedColor, 
-                texture, 
+                0xFFFFFFFF,
+                texture,
+                matPtr, 
                 uv0, uv1, uv2,
-                &recipW0, &recipW1, &recipW2,
-                false);
+                pRecipW0, pRecipW1, pRecipW2,
+                &vn0_world, &vn1_world, &vn2_world,
+                &viewPos0, &viewPos1, &viewPos2,
+                usePerspective);
+
             drewAny = true;
         }
     }

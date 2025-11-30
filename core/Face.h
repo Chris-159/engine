@@ -9,6 +9,7 @@ namespace core
     {
         std::vector<int> vertexIndices;
         std::vector<int> texcoordIndices;
+        std::vector<int> normalIndices;
         std::string materialName;         // face material
         
         Face() = default;

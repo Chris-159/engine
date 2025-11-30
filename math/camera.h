@@ -18,6 +18,14 @@ namespace math
             Vec3 right = Vec3().Cross(forward, up).Normalized();
             Vec3 trueUp = Vec3().Cross(right, forward);
 
+            // View matrix scheme:
+            /*
+                Rx  Tx  -Fx -Dot(R, Position)
+                Ry  Ty  -Fy -Dot(T, Position)
+                Rz  Tz  -Fz Dot(F, Position)
+                0   0   0   1
+            */
+
             viewMat.m[0][0] = right.x;
             viewMat.m[1][0] = right.y;
             viewMat.m[2][0] = right.z;
@@ -41,7 +49,6 @@ namespace math
             return viewMat;
         }
 
-        // 
         mat4 GetProjectionMatrix(float fov_, float aspect_, float near_, float far_) const {
             float f_ = 1.0f / tanf(fov_ * 0.5f);
             mat4 projMat = mat4();
@@ -56,27 +63,20 @@ namespace math
             return projMat;
         }
 
-        Vec3 ProjectPoint(const Vec3& worldPos_, const mat4& view_, const mat4& projection_) {
-            Vec4 p(worldPos_.x, worldPos_.y, worldPos_.z, 1.0f);
-            Vec4 viewPos = view_ * p;
-            Vec4 clipPos = projection_ * viewPos;
+        Vec3 ProjectPoint(const Vec3& worldPos_, const mat4& view_, const mat4& projection_, float& outW_) {
+            Vec4 p(worldPos_, 1.0f);
+            Vec4 viewPos = projection_ * (view_ * p);
 
-            if (fabs(clipPos.w) > 0.00001f) {
-                clipPos.x /= clipPos.w;
-                clipPos.y /= clipPos.w;
-                clipPos.z /= clipPos.w;
+            outW_ = viewPos.w;
+
+            if (fabs(viewPos.w) > 0.00001f) {
+                viewPos.x /= viewPos.w;
+                viewPos.y /= viewPos.w;
+                viewPos.z /= viewPos.w;
             }
 
-            return Vec3(clipPos.x, clipPos.y, clipPos.z);
+            return Vec3(viewPos.x, viewPos.y, viewPos.z);
         }
-
-        // math::Vec4 Camera::ProjectPoint4(const math::Vec3& worldPos, const math::mat4& view, const math::mat4& proj) const {
-        //     // world -> view -> clip
-        //     math::Vec4 v(worldPos, 1.0f);
-        //     math::Vec4 viewV = view * v;
-        //     math::Vec4 clipV = proj * viewV;
-        //     return clipV; // (x,y,z,w) clip space; NDC = clipV / clipV.w
-        // }
     };
 } // namespace math
 

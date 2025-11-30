@@ -16,6 +16,7 @@ namespace loader {
             bool ParseVertex(const std::string& line_, core::Model& model_);
             bool ParseFace(const std::string& line_, const std::string& materialName_, core::Model& model_);
             bool ParseTexCoord(const std::string& line_, core::Model& model_);
+            bool ParseNormal(const std::string& line_, core::Model& model_);
         };
     
 } // namespace loader

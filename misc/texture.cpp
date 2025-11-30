@@ -10,16 +10,21 @@ namespace misc
         u = std::fmod(std::fmod(u, 1.0f) + 1.0f, 1.0f);
         v = std::fmod(std::fmod(v, 1.0f) + 1.0f, 1.0f);
 
-        int x = int(u * (width  - 1));
-        int y = int((1.0f - v) * (height - 1)); 
+        int x = int(u * (width  - 1) + 0.5f);
+        int y = int((1.0f - v) * (height - 1) + 0.5f); 
 
-        int index = (y * width + x) * channels;
+        // clamp (safety)
+        if (x < 0) x = 0; if (x >= width) x = width - 1;
+        if (y < 0) y = 0; if (y >= height) y = height - 1;
 
-        uint8_t r = data[index + 0];
-        uint8_t g = data[index + 1];
-        uint8_t b = data[index + 2];
-        uint8_t a = data[index + 3];
+        int base = (y * width + x) * channels;
 
-        return (a << 24) | (r << 16) | (g << 8) | b;
+        uint8_t r = 0, g = 0, b = 0, a = 255;
+        if (channels >= 1) r = data[base + 0];
+        if (channels >= 2) g = data[base + 1];
+        if (channels >= 3) b = data[base + 2];
+        if (channels >= 4) a = data[base + 3];
+
+        return (uint32_t(a) << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
     }
 }

@@ -22,6 +22,8 @@ namespace core
 
         misc::Material material;
 
+        std::vector<math::Vec3> normals;
+
         std::unordered_map<std::string, misc::Material> materials;
         std::vector<std::string> faceMaterial;
 

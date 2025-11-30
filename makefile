@@ -3,7 +3,7 @@ CXX := g++
 CXXFlags := -std=c++17 -Wall -Wextra -Icore -Iloader
 
 # Dirs
-SRC_DIRS := core loader math transform renderer misc
+SRC_DIRS := core loader math transform renderer misc settings
 OBJ_DIR := obj
 BIN := engine
 
